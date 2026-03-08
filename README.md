@@ -2,7 +2,7 @@
 
 Two shell scripts for macOS that let you switch between multiple Anthropic accounts — useful when one account hits its 5-hour usage limit and you want to keep working.
 
-- **`claude-desktop-switch.sh`** — switches accounts in Claude Desktop (the chat app)
+- **`claude-desktop-switch.sh`** — switches accounts in Claude Desktop (the Cowork/chat app)
 - **`claude-code-switch.sh`** — switches accounts in Claude Code (VS Code extension and CLI)
 
 Both scripts save a safety snapshot before every switch, auto-save the current account state, and support cycling through accounts with a single `next` command.
