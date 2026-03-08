@@ -111,9 +111,20 @@ safety_snapshot() {
 }
 
 # ── Save current account ──────────────────────────────────────────────────────
+RESERVED_NAMES=("next" "list" "status" "save-current" "restore-snapshot" "setup" "help")
+
+is_reserved() {
+    local name="$1"
+    for r in "${RESERVED_NAMES[@]}"; do
+        [ "$name" = "$r" ] && return 0
+    done
+    return 1
+}
+
 cmd_save_current() {
     local account="${1:-}"
     [ -n "$account" ] || die "Usage: $0 save-current <account_name>"
+    is_reserved "$account" && die "'$account' is a reserved command name. Choose a different account name."
 
     [ -d "$SHARED_DIR" ] || die "Run '$0 setup' first."
 
@@ -135,6 +146,7 @@ cmd_switch() {
     local current
     current=$(current_account)
 
+    is_reserved "$account" && die "'$account' is a reserved command name, not an account."
     [ -d "$ACCOUNTS_DIR/$account" ] || die "Account '$account' not found. Run: $0 save-current $account"
     [ -d "$SHARED_DIR" ] || die "Run '$0 setup' first."
 
@@ -189,13 +201,15 @@ cmd_next() {
     local current
     current=$(current_account)
 
-    # Build sorted list of accounts
+    # Build sorted list of valid accounts (must contain claude.json, not reserved)
     local accounts=()
     for d in "$ACCOUNTS_DIR"/*/; do
         [ -d "$d" ] || continue
         local name
         name=$(basename "$d")
         [[ "$name" == .* ]] && continue
+        is_reserved "$name" && continue
+        [ -f "$d/claude.json" ] || continue
         accounts+=("$name")
     done
 
@@ -232,6 +246,8 @@ cmd_list() {
         local name
         name=$(basename "$d")
         [[ "$name" == .* ]] && continue
+        is_reserved "$name" && continue
+        [ -f "$d/claude.json" ] || continue
         local size
         size=$(du -sh "$d" 2>/dev/null | cut -f1)
         local marker=""

@@ -122,9 +122,20 @@ restore_account() {
 }
 
 # ── Commands ─────────────────────────────────────────────────────────────────
+RESERVED_NAMES=("next" "list" "status" "save-current" "restore-snapshot" "help")
+
+is_reserved() {
+    local name="$1"
+    for r in "${RESERVED_NAMES[@]}"; do
+        [ "$name" = "$r" ] && return 0
+    done
+    return 1
+}
+
 cmd_save_current() {
     local account="${1:-}"
     [ -n "$account" ] || die "Usage: $0 save-current <account_name>"
+    is_reserved "$account" && die "'$account' is a reserved command name. Choose a different account name."
     is_running && die "Claude Desktop is running. Quit it before saving."
     save_account "$account"
 }
@@ -134,6 +145,7 @@ cmd_switch() {
     local current=""
     [ -f "$CURRENT_ACCOUNT_FILE" ] && current=$(cat "$CURRENT_ACCOUNT_FILE")
 
+    is_reserved "$account" && die "'$account' is a reserved command name, not an account."
     [ -d "$ACCOUNTS_DIR/$account" ] || die "Account '$account' not found. Run: $0 save-current $account"
 
     if [ "$current" = "$account" ]; then
@@ -163,13 +175,16 @@ cmd_next() {
     local current=""
     [ -f "$CURRENT_ACCOUNT_FILE" ] && current=$(cat "$CURRENT_ACCOUNT_FILE")
 
-    # Build sorted list of accounts
+    # Build sorted list of valid accounts (must contain ant-did or config.json, not reserved)
     local accounts=()
     for d in "$ACCOUNTS_DIR"/*/; do
         [ -d "$d" ] || continue
         local name
         name=$(basename "$d")
         [[ "$name" == .* ]] && continue
+        is_reserved "$name" && continue
+        # Must look like a real account — contain at least one expected auth file
+        { [ -f "$d/ant-did" ] || [ -f "$d/config.json" ] || [ -f "$d/Cookies" ]; } || continue
         accounts+=("$name")
     done
 
@@ -204,6 +219,8 @@ cmd_list() {
         [ -d "$d" ] || continue
         name=$(basename "$d")
         [[ "$name" == .* ]] && continue
+        is_reserved "$name" && continue
+        { [ -f "$d/ant-did" ] || [ -f "$d/config.json" ] || [ -f "$d/Cookies" ]; } || continue
         size=$(du -sh "$d" 2>/dev/null | cut -f1)
         marker=""
         [ "$name" = "$current" ] && marker=" ◀ current"
