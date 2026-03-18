@@ -44,8 +44,8 @@ quit_claude() {
     if is_running; then
         echo "⏳ Quitting Claude Desktop..."
         osascript -e 'quit app "Claude"' 2>/dev/null || pkill -x "Claude" 2>/dev/null || true
-        # Wait up to 10s for it to quit
-        for i in $(seq 1 10); do
+        # Wait up to 2 minutes for it to quit
+        for i in $(seq 1 120); do
             sleep 1
             is_running || break
         done
